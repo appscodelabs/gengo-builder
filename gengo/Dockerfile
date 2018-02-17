@@ -1,6 +1,6 @@
 FROM golang:1.9-alpine
 
-RUN apk add --update git
+RUN apk add --update git bash
 
 RUN go get -v k8s.io/code-generator/... \
   && cd /go/src/k8s.io \

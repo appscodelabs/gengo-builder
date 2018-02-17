@@ -17,9 +17,9 @@ RUN set -x \
 RUN set -x \
   && mkdir -p /opt/protoc \
   && cd /opt/protoc \
-  && curl -fsSOL https://github.com/google/protobuf/archive/v3.3.0.tar.gz \
-  && tar -xzvf v3.3.0.tar.gz --strip-component=1 \
-  && rm v3.3.0.tar.gz \
+  && curl -fsSOL https://github.com/google/protobuf/archive/v3.5.1.tar.gz \
+  && tar -xzvf v3.5.1.tar.gz --strip-component=1 \
+  && rm v3.5.1.tar.gz \
   && ./autogen.sh \
   && ./configure \
   && make \
@@ -29,7 +29,10 @@ RUN set -x \
 
 # install code-generator
 RUN go get -v k8s.io/code-generator/... \
-  && cd /go/src/k8s.io/code-generator \
+  && cd /go/src/k8s.io \
+  && rm -rf code-generator \
+  && git clone https://github.com/kubedb/code-generator.git \
+  && cd code-generator \
   && git checkout release-1.9 \
   && go install ./...
 
