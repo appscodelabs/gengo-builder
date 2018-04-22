@@ -1,4 +1,4 @@
-FROM golang:1.9-stretch
+FROM golang:1.10-stretch
 
 # protoc build dependency
 RUN set -x \
@@ -31,9 +31,9 @@ RUN set -x \
 RUN go get -v k8s.io/code-generator/... \
   && cd /go/src/k8s.io \
   && rm -rf code-generator \
-  && git clone https://github.com/appscode/code-generator.git \
+  && git clone https://github.com/appscodelabs/code-generator.git \
   && cd code-generator \
-  && git checkout release-1.9 \
+  && git checkout release-1.10 \
   && go install ./...
 
 RUN go get -v github.com/gogo/protobuf/...
