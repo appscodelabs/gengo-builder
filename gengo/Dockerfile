@@ -7,5 +7,5 @@ RUN go get -v k8s.io/code-generator/... \
   && rm -rf code-generator \
   && git clone https://github.com/appscodelabs/code-generator.git \
   && cd code-generator \
-  && git checkout release-1.10 \
+  && git checkout release-1.11 \
   && go install ./...
