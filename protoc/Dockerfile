@@ -37,15 +37,15 @@ RUN go get -v k8s.io/code-generator/... \
   && git checkout release-1.12 \
   && go install ./...
 
-# https://github.com/gardener/gardener/issues/289
-RUN go get -u -v k8s.io/gengo/... \
-  && go get -u -v k8s.io/kube-openapi/... \
-  && cd /go/src/k8s.io/kube-openapi \
-  && go install ./cmd/openapi-gen/...
-
 RUN go get -v github.com/gogo/protobuf/...
 
 RUN go get -u golang.org/x/tools/cmd/goimports
 
 RUN set -x \
   && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man /tmp/*
+
+# https://github.com/gardener/gardener/issues/289
+RUN go get -u -v k8s.io/gengo/... \
+  && go get -u -v k8s.io/kube-openapi/... \
+  && cd /go/src/k8s.io/kube-openapi \
+  && go install ./cmd/openapi-gen/...
