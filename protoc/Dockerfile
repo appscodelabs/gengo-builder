@@ -34,7 +34,7 @@ RUN go get -v k8s.io/code-generator/... \
   && rm -rf code-generator \
   && git clone https://github.com/kmodules/code-generator.git \
   && cd code-generator \
-  && git checkout release-1.12 \
+  && git checkout release-1.13 \
   && go install ./...
 
 RUN go get -v github.com/gogo/protobuf/...
