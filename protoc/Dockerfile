@@ -48,4 +48,5 @@ RUN set -x \
 RUN go get -u -v k8s.io/gengo/... \
   && go get -u -v k8s.io/kube-openapi/... \
   && cd /go/src/k8s.io/kube-openapi \
+  && git checkout c59034cc13d587f5ef4e85ca0ade0c1866ae8e1d \
   && go install ./cmd/openapi-gen/...
