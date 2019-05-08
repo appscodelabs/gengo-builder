@@ -34,7 +34,7 @@ RUN go get -v k8s.io/code-generator/... \
   && rm -rf code-generator \
   && git clone https://github.com/kmodules/code-generator.git \
   && cd code-generator \
-  && git checkout release-1.13 \
+  && git checkout release-1.14 \
   && go install ./...
 
 RUN go get -v github.com/gogo/protobuf/...
@@ -48,5 +48,5 @@ RUN set -x \
 RUN go get -u -v k8s.io/gengo/... \
   && go get -u -v k8s.io/kube-openapi/... \
   && cd /go/src/k8s.io/kube-openapi \
-  && git checkout c59034cc13d587f5ef4e85ca0ade0c1866ae8e1d \
+  && git checkout b3a7cee44a305be0a69e1b9ac03018307287e1b0 \
   && go install ./cmd/openapi-gen/...
