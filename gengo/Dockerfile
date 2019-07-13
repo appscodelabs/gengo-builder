@@ -1,6 +1,6 @@
 FROM golang:1.12-alpine
 
-RUN apk add --update git bash mercurial
+RUN apk add --update ca-certificates build-base gcc git bash mercurial
 
 RUN go get -v k8s.io/code-generator/... \
   && cd /go/src/k8s.io \
