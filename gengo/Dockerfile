@@ -18,6 +18,12 @@ RUN go get -u -v k8s.io/gengo/... \
   && go install ./cmd/openapi-gen/...
 
 # https://github.com/kubeform/kubeform/pull/2
-RUN GO111MODULE=on \
-  go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.2.0-beta.3 \
+RUN \
+  mkdir -p /go/src/sigs.k8s.io \
+  && cd /go/src/sigs.k8s.io \
+  && rm -rf controller-tools \
+  && git clone https://github.com/kmodules/controller-tools.git \
+  && cd controller-tools \
+  && git checkout v0.2.0-beta.3-ac \
+  && GO111MODULE=on go install ./cmd/controller-gen \
   && rm -rf /go/pkg/mod
