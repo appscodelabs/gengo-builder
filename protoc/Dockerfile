@@ -59,7 +59,7 @@ RUN set -x \
   && rm -rf controller-tools \
   && git clone https://github.com/kmodules/controller-tools.git \
   && cd controller-tools \
-  && git checkout v0.2.0-beta.3-ac \
+  && git checkout v0.2.0-beta.3-ac-v2 \
   && GO111MODULE=on go install ./cmd/controller-gen
 
 RUN set -x \
