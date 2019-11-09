@@ -2,6 +2,7 @@ FROM golang:1.12-alpine
 
 RUN apk add --update ca-certificates build-base gcc git bash mercurial bzr
 
+# install code-generator
 RUN go get -v k8s.io/code-generator/... || true \
   && cd /go/src/k8s.io \
   && rm -rf code-generator \

@@ -1,33 +1,8 @@
-FROM golang:1.12-stretch
+FROM golang:1.12-buster
 
-# protoc build dependency
 RUN set -x \
   && apt-get update \
-  && apt-get -y --no-install-recommends install \
-    automake \
-    build-essential \
-    ca-certificates \
-    curl \
-    gettext \
-    git \
-    mercurial \
-    bzr \
-    libtool \
-    unzip
-
-# install protoc
-RUN set -x \
-  && mkdir -p /opt/protoc \
-  && cd /opt/protoc \
-  && curl -fsSOL https://github.com/google/protobuf/archive/v3.5.1.tar.gz \
-  && tar -xzvf v3.5.1.tar.gz --strip-component=1 \
-  && rm v3.5.1.tar.gz \
-  && ./autogen.sh \
-  && ./configure \
-  && make \
-  && make check \
-  && make install \
-  && ldconfig
+  && apt-get install -y --no-install-recommends ca-certificates wget git bash mercurial bzr xz-utils socat build-essential protobuf-compiler
 
 # install code-generator
 RUN go get -v k8s.io/code-generator/... || true \
@@ -37,13 +12,6 @@ RUN go get -v k8s.io/code-generator/... || true \
   && cd code-generator \
   && git checkout release-1.14 \
   && go install ./...
-
-RUN go get -v github.com/gogo/protobuf/...
-
-RUN go get -u golang.org/x/tools/cmd/goimports
-
-RUN set -x \
-  && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man /tmp/*
 
 # https://github.com/gardener/gardener/issues/289
 RUN go get -u -v k8s.io/gengo/... || true \
@@ -59,7 +27,7 @@ RUN set -x \
   && rm -rf controller-tools \
   && git clone https://github.com/kmodules/controller-tools.git \
   && cd controller-tools \
-  && git checkout v0.2.0-beta.3-ac-v2 \
+  && git checkout v0.2.0-beta.3-ac-v3 \
   && GO111MODULE=on go install ./cmd/controller-gen
 
 RUN set -x \
@@ -70,6 +38,20 @@ RUN set -x \
   && cd gen-crd-api-reference-docs \
   && git checkout master \
   && GO111MODULE=on go install ./...
+
+# install protobuf
+RUN mkdir -p /go/src/github.com/golang \
+  && cd /go/src/github.com/golang \
+  && rm -rf protobuf \
+  && git clone https://github.com/golang/protobuf.git \
+  && mkdir -p /go/src/google.golang.org/genproto \
+  && cd /go/src/google.golang.org \
+  && git clone https://github.com/googleapis/go-genproto.git genproto \
+  && cd /go/src/google.golang.org/genproto \
+  && git checkout b515fa19cec88c32f305a962f34ae60068947aea \
+  && cd /go/src/github.com/golang/protobuf \
+  && git checkout v1.2.0 \
+  && go install ./...
 
 RUN set -x \
   && rm -rf /go/pkg/mod
