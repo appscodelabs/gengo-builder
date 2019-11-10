@@ -2,7 +2,7 @@ FROM golang:1.12-buster
 
 RUN set -x \
   && apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates wget git bash mercurial bzr xz-utils socat build-essential protobuf-compiler
+  && apt-get install -y --no-install-recommends ca-certificates wget git bash mercurial bzr xz-utils socat build-essential gcc protobuf-compiler
 
 # install code-generator
 RUN go get -v k8s.io/code-generator/... || true \
@@ -53,5 +53,10 @@ RUN mkdir -p /go/src/github.com/golang \
   && git checkout v1.2.0 \
   && go install ./...
 
-RUN set -x \
-  && rm -rf /go/pkg/mod
+RUN set -x                                        \
+  && export GO111MODULE=on                        \
+  && export GOBIN=/usr/local/bin                  \
+  && go get -u golang.org/x/tools/cmd/goimports   \
+  && export GOBIN=                                \
+  && export GO111MODULE=auto                      \
+  && rm -rf go.mod go.sum /go/pkg/mod
