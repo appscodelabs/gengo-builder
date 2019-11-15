@@ -2,7 +2,7 @@ FROM golang:1.12-buster
 
 RUN set -x \
   && apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates wget git bash mercurial bzr xz-utils socat build-essential gcc protobuf-compiler
+  && apt-get install -y --no-install-recommends apt-utils ca-certificates wget git bash mercurial bzr xz-utils socat build-essential gcc protobuf-compiler
 
 # install code-generator
 RUN go get -v k8s.io/code-generator/... || true \
