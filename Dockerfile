@@ -60,5 +60,5 @@ RUN set -x \
   && git checkout v0.2.2-ac \
   && GO111MODULE=on go install ./cmd/controller-gen
 
-RUN set -x                                        \
+RUN set -x \
   && rm -rf go.mod go.sum /go/pkg/mod
