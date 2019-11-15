@@ -20,16 +20,6 @@ RUN go get -u -v k8s.io/gengo/... || true \
   && git checkout b3a7cee44a305be0a69e1b9ac03018307287e1b0 \
   && go install ./cmd/openapi-gen/...
 
-# https://github.com/kubeform/kubeform/pull/2
-RUN set -x \
-  && mkdir -p /go/src/sigs.k8s.io \
-  && cd /go/src/sigs.k8s.io \
-  && rm -rf controller-tools \
-  && git clone https://github.com/kmodules/controller-tools.git \
-  && cd controller-tools \
-  && git checkout v0.2.0-beta.3-ac-v3 \
-  && GO111MODULE=on go install ./cmd/controller-gen
-
 RUN set -x \
   && mkdir -p /go/src/github.com/ahmetb \
   && cd /go/src/github.com/ahmetb \
@@ -58,5 +48,17 @@ RUN set -x                                        \
   && export GOBIN=/usr/local/bin                  \
   && go get -u golang.org/x/tools/cmd/goimports   \
   && export GOBIN=                                \
-  && export GO111MODULE=auto                      \
+  && export GO111MODULE=auto
+
+# https://github.com/kubeform/kubeform/pull/2
+RUN set -x \
+  && mkdir -p /go/src/sigs.k8s.io \
+  && cd /go/src/sigs.k8s.io \
+  && rm -rf controller-tools \
+  && git clone https://github.com/kmodules/controller-tools.git \
+  && cd controller-tools \
+  && git checkout v0.2.2-ac \
+  && GO111MODULE=on go install ./cmd/controller-gen
+
+RUN set -x                                        \
   && rm -rf go.mod go.sum /go/pkg/mod
