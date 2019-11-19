@@ -1,4 +1,4 @@
-FROM golang:1.12-buster
+FROM golang:1.13.4-buster
 
 RUN set -x \
   && apt-get update \
@@ -10,14 +10,14 @@ RUN go get -v k8s.io/code-generator/... || true \
   && rm -rf code-generator \
   && git clone https://github.com/kmodules/code-generator.git \
   && cd code-generator \
-  && git checkout release-1.14 \
+  && git checkout ac-1.16.3 \
   && go install ./...
 
 # https://github.com/gardener/gardener/issues/289
 RUN go get -u -v k8s.io/gengo/... || true \
   && go get -u -v k8s.io/kube-openapi/... \
   && cd /go/src/k8s.io/kube-openapi \
-  && git checkout b3a7cee44a305be0a69e1b9ac03018307287e1b0 \
+  && git checkout 743ec37842bf \
   && go install ./cmd/openapi-gen/...
 
 RUN set -x \
@@ -38,9 +38,9 @@ RUN mkdir -p /go/src/github.com/golang \
   && cd /go/src/google.golang.org \
   && git clone https://github.com/googleapis/go-genproto.git genproto \
   && cd /go/src/google.golang.org/genproto \
-  && git checkout b515fa19cec88c32f305a962f34ae60068947aea \
+  && git checkout 54afdca5d873 \
   && cd /go/src/github.com/golang/protobuf \
-  && git checkout v1.2.0 \
+  && git checkout v1.3.1 \
   && go install ./...
 
 RUN set -x                                        \
