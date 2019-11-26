@@ -5,18 +5,6 @@ RUN set -x \
   && apt-get install -y --no-install-recommends apt-utils ca-certificates wget git bash mercurial bzr xz-utils socat build-essential gcc protobuf-compiler \
   && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man /tmp/*
 
-# install code-generator
-RUN set -x \
-  && mkdir -p /go/src/k8s.io \
-  && cd /go/src/k8s.io \
-  && rm -rf code-generator \
-  && git clone https://github.com/kmodules/code-generator.git \
-  && cd code-generator \
-  && git checkout ac-1.16.3 \
-  && GO111MODULE=on go install ./... \
-  && cd /go \
-  && rm -rf /go/pkg /go/src
-
 # https://github.com/gardener/gardener/issues/289
 RUN set -x \
   && mkdir -p /go/src/k8s.io \
@@ -67,3 +55,15 @@ RUN set -x \
   && GO111MODULE=on go get -u golang.org/x/tools/cmd/goimports \
   && cd /go \
   && rm -rf /go/pkg /go/src
+
+# install code-generator
+RUN set -x \
+  && mkdir -p /go/src/k8s.io \
+  && cd /go/src/k8s.io \
+  && rm -rf code-generator \
+  && git clone https://github.com/kmodules/code-generator.git \
+  && cd code-generator \
+  && git checkout ac-1.16.3 \
+  && GO111MODULE=on go install ./... \
+  && cd /go \
+  && rm -rf /go/pkg
