@@ -66,4 +66,5 @@ RUN set -x \
   && git checkout ac-1.16.3 \
   && GO111MODULE=on go install ./... \
   && cd /go \
-  && rm -rf /go/pkg
+  && rm -rf /go/pkg \
+  && chmod -R 0777 /go/src
