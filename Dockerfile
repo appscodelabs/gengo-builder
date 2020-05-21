@@ -12,7 +12,7 @@ RUN set -x \
   && rm -rf kube-openapi \
   && git clone https://github.com/kubernetes/kube-openapi.git \
   && cd kube-openapi \
-  && git checkout 743ec37842bf \
+  && git checkout 61e04a5be9a6 \
   && GO111MODULE=on go install ./cmd/openapi-gen/... \
   && cd /go \
   && rm -rf /go/pkg /go/src
@@ -24,7 +24,7 @@ RUN set -x \
   && rm -rf controller-tools \
   && git clone https://github.com/kmodules/controller-tools.git \
   && cd controller-tools \
-  && git checkout v0.2.4-ac \
+  && git checkout v0.3.0-ac \
   && GO111MODULE=on go install ./cmd/controller-gen \
   && cd /go \
   && rm -rf /go/pkg /go/src
@@ -46,7 +46,7 @@ RUN mkdir -p /go/src/github.com/golang \
   && rm -rf protobuf \
   && git clone https://github.com/golang/protobuf.git \
   && cd protobuf \
-  && git checkout v1.3.1 \
+  && git checkout v1.3.2 \
   && GO111MODULE=on go install ./... \
   && cd /go \
   && rm -rf /go/pkg /go/src
@@ -63,7 +63,7 @@ RUN set -x \
   && rm -rf code-generator \
   && git clone https://github.com/kmodules/code-generator.git \
   && cd code-generator \
-  && git checkout ac-1.16.3 \
+  && git checkout ac-1.18.3 \
   && GO111MODULE=on go install ./... \
   && cd /go \
   && rm -rf /go/pkg \
