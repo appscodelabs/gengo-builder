@@ -1,5 +1,7 @@
 #!/bin/bash
 set -xeuo pipefail
 
-docker build --pull -t appscode/gengo:release-1.18 .
-docker push appscode/gengo:release-1.18
+REGISTRY=${REGISTRY:-appscode}
+
+docker build --pull -t $REGISTRY/gengo:release-1.18 .
+docker push $REGISTRY/gengo:release-1.18
