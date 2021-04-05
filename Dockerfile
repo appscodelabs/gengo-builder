@@ -14,7 +14,7 @@ RUN set -x \
   && rm -rf kube-openapi \
   && git clone https://github.com/kubernetes/kube-openapi.git \
   && cd kube-openapi \
-  && git checkout d219536bb9fd \
+  && git checkout 591a79e4bda7 \
   && GO111MODULE=on go install ./cmd/openapi-gen/... \
   && cd /go \
   && rm -rf /go/pkg /go/src
@@ -26,7 +26,7 @@ RUN set -x \
   && rm -rf controller-tools \
   && git clone https://github.com/kmodules/controller-tools.git \
   && cd controller-tools \
-  && git checkout v0.5.0-ac \
+  && git checkout ac-1.21.0 \
   && GO111MODULE=on go install ./cmd/controller-gen \
   && cd /go \
   && rm -rf /go/pkg /go/src
@@ -65,7 +65,7 @@ RUN set -x \
   && rm -rf code-generator \
   && git clone https://github.com/kmodules/code-generator.git \
   && cd code-generator \
-  && git checkout ac-1.20.4 \
+  && git checkout ac-1.21.0 \
   && GO111MODULE=on go install ./... \
   && cd /go \
   && rm -rf /go/pkg \
