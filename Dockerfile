@@ -1,4 +1,4 @@
-FROM golang:1.16-buster
+FROM golang:1.17
 
 LABEL org.opencontainers.image.source https://github.com/appscodelabs/gengo-builder
 
