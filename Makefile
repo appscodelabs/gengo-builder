@@ -4,6 +4,7 @@ REGISTRY   ?= appscode
 BIN        ?= gengo
 IMAGE      := $(REGISTRY)/$(BIN)
 TAG        ?= release-1.21
+SRC_REG    ?=
 
 DOCKER_PLATFORMS := linux/amd64 linux/arm64
 PLATFORM         ?= $(firstword $(DOCKER_PLATFORMS))
@@ -24,10 +25,17 @@ all-container: $(addprefix container-, $(subst /,_,$(DOCKER_PLATFORMS)))
 all-push: $(addprefix push-, $(subst /,_,$(DOCKER_PLATFORMS)))
 
 .PHONY: container
+ifeq (,$(SRC_REG))
 container:
 	@echo "container: $(IMAGE):$(VERSION)"
 	@docker buildx build --platform $(PLATFORM) --load --pull -t $(IMAGE):$(VERSION) -f Dockerfile .
 	@echo
+else
+container:
+	@echo "container: $(IMAGE):$(TAG)"
+	@docker tag $(SRC_REG)/$(BIN):$(TAG) $(IMAGE):$(TAG)
+	@echo
+endif
 
 push: container
 	@docker push $(IMAGE):$(VERSION)
