@@ -3,12 +3,12 @@ SHELL=/bin/bash -o pipefail
 REGISTRY   ?= appscode
 BIN        ?= gengo
 IMAGE      := $(REGISTRY)/$(BIN)
-TAG        ?= release-1.21
+VERSION    ?= release-1.21
 SRC_REG    ?=
 
 DOCKER_PLATFORMS := linux/amd64 linux/arm64
 PLATFORM         ?= $(firstword $(DOCKER_PLATFORMS))
-VERSION          = $(TAG)_$(subst /,_,$(PLATFORM))
+TAG              = $(VERSION)_$(subst /,_,$(PLATFORM))
 
 container-%:
 	@$(MAKE) container \
@@ -27,8 +27,8 @@ all-push: $(addprefix push-, $(subst /,_,$(DOCKER_PLATFORMS)))
 .PHONY: container
 ifeq (,$(SRC_REG))
 container:
-	@echo "container: $(IMAGE):$(VERSION)"
-	@docker buildx build --platform $(PLATFORM) --load --pull -t $(IMAGE):$(VERSION) -f Dockerfile .
+	@echo "container: $(IMAGE):$(TAG)"
+	@docker buildx build --platform $(PLATFORM) --load --pull -t $(IMAGE):$(TAG) -f Dockerfile .
 	@echo
 else
 container:
@@ -38,22 +38,18 @@ container:
 endif
 
 push: container
-	@docker push $(IMAGE):$(VERSION)
-	@echo "pushed: $(IMAGE):$(VERSION)"
+	@docker push $(IMAGE):$(TAG)
+	@echo "pushed: $(IMAGE):$(TAG)"
 	@echo
 
 .PHONY: docker-manifest
 docker-manifest:
-	docker manifest create -a $(IMAGE):$(TAG) $(foreach PLATFORM,$(DOCKER_PLATFORMS),$(IMAGE):$(TAG)_$(subst /,_,$(PLATFORM)))
-	docker manifest push $(IMAGE):$(TAG)
+	docker manifest create -a $(IMAGE):$(VERSION) $(foreach PLATFORM,$(DOCKER_PLATFORMS),$(IMAGE):$(VERSION)_$(subst /,_,$(PLATFORM)))
+	docker manifest push $(IMAGE):$(VERSION)
 
 .PHONY: release
 release:
 	@$(MAKE) all-push docker-manifest --no-print-directory
-
-.PHONY: version
-version:
-	@echo ::set-output name=version::$(VERSION)
 
 .PHONY: fmt
 fmt:
@@ -72,5 +68,5 @@ ci: verify
 .PHONY: push-to-kind
 push-to-kind: container
 	@echo "Loading docker image into kind cluster...."
-	@kind load docker-image $(IMAGE):$(VERSION)
+	@kind load docker-image $(IMAGE):$(TAG)
 	@echo "Image has been pushed successfully into kind cluster."
