@@ -26,7 +26,7 @@ RUN set -x \
   && rm -rf controller-tools \
   && git clone https://github.com/kmodules/controller-tools.git \
   && cd controller-tools \
-  && git checkout v0.6.0-ac \
+  && git checkout v0.7.0-ac \
   && GO111MODULE=on go install ./cmd/controller-gen \
   && cd /go \
   && rm -rf /go/pkg /go/src
