@@ -1,4 +1,4 @@
-FROM golang:1.18
+FROM golang:1.19
 
 LABEL org.opencontainers.image.source https://github.com/appscodelabs/gengo-builder
 
@@ -14,8 +14,8 @@ RUN set -x \
   && rm -rf kube-openapi \
   && git clone https://github.com/kubernetes/kube-openapi.git \
   && cd kube-openapi \
-  && git checkout 3ee0da9b0b42 \
-  && GO111MODULE=on go install ./cmd/openapi-gen/... \
+  && git checkout 67bda5d908f1 \
+  && go install ./cmd/openapi-gen/... \
   && cd /go \
   && rm -rf /go/pkg /go/src
 
@@ -26,8 +26,8 @@ RUN set -x \
   && rm -rf controller-tools \
   && git clone https://github.com/kmodules/controller-tools.git \
   && cd controller-tools \
-  && git checkout ac-0.9.0 \
-  && GO111MODULE=on go install ./cmd/controller-gen \
+  && git checkout ac-0.10.0 \
+  && go install ./cmd/controller-gen \
   && cd /go \
   && rm -rf /go/pkg /go/src
 
@@ -38,7 +38,7 @@ RUN set -x \
   && git clone https://github.com/appscodelabs/gen-crd-api-reference-docs.git \
   && cd gen-crd-api-reference-docs \
   && git checkout master \
-  && GO111MODULE=on go install ./... \
+  && go install ./... \
   && cd /go \
   && rm -rf /go/pkg /go/src
 
@@ -48,8 +48,8 @@ RUN mkdir -p /go/src/github.com/golang \
   && rm -rf protobuf \
   && git clone https://github.com/golang/protobuf.git \
   && cd protobuf \
-  && git checkout v1.4.3 \
-  && GO111MODULE=on go install ./... \
+  && git checkout v1.5.2 \
+  && go install ./... \
   && cd /go \
   && rm -rf /go/pkg /go/src
 
@@ -65,8 +65,8 @@ RUN set -x \
   && rm -rf code-generator \
   && git clone https://github.com/kmodules/code-generator.git \
   && cd code-generator \
-  && git checkout ac-1.24.1 \
-  && GO111MODULE=on go install ./... \
+  && git checkout ac-1.25.1 \
+  && go install ./... \
   && cd /go \
   && rm -rf /go/pkg \
   && chmod -R 0777 /go/src
