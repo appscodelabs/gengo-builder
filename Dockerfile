@@ -14,7 +14,7 @@ RUN set -x \
   && rm -rf kube-openapi \
   && git clone https://github.com/kubernetes/kube-openapi.git \
   && cd kube-openapi \
-  && git checkout 2695361300d9 \
+  && git checkout 2dd684a91f00 \
   && go install ./cmd/openapi-gen/... \
   && cd /go \
   && rm -rf /go/pkg /go/src
@@ -65,7 +65,7 @@ RUN set -x \
   && rm -rf code-generator \
   && git clone https://github.com/kmodules/code-generator.git \
   && cd code-generator \
-  && git checkout ac-1.28.3 \
+  && git checkout ac-1.29.0 \
   && go install ./... \
   && cd /go \
   && rm -rf /go/pkg \
