@@ -7,6 +7,10 @@ RUN set -x \
   && apt-get install -y --no-install-recommends apt-utils ca-certificates wget git bash mercurial bzr xz-utils socat build-essential gcc protobuf-compiler \
   && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man /tmp/*
 
+# https://stackoverflow.com/a/73100228
+RUN set -x \
+  && git config --global --add safe.directory '*'
+
 # https://github.com/gardener/gardener/issues/289
 RUN set -x \
   && mkdir -p /go/src/k8s.io \
