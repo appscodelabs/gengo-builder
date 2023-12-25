@@ -7,9 +7,11 @@ RUN set -x \
   && apt-get install -y --no-install-recommends apt-utils ca-certificates wget git bash mercurial bzr xz-utils socat build-essential gcc protobuf-compiler \
   && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man /tmp/*
 
+# https://candid.technology/error-obtaining-vcs-status-exit-status-128/
 # https://stackoverflow.com/a/73100228
 RUN set -x \
-  && git config --global --add safe.directory '*'
+  && git config --global --add safe.directory '*' \
+  && cp /root/.gitconfig /.gitconfig
 
 # https://github.com/gardener/gardener/issues/289
 RUN set -x \
