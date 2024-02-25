@@ -1,4 +1,4 @@
-FROM golang:1.21
+FROM golang:1.22
 
 LABEL org.opencontainers.image.source https://github.com/appscodelabs/gengo-builder
 
