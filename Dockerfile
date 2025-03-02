@@ -32,7 +32,7 @@ RUN set -x \
   && rm -rf controller-tools \
   && git clone https://github.com/kmodules/controller-tools.git \
   && cd controller-tools \
-  && git checkout ac-0.13.0 \
+  && git checkout ac-0.17.2 \
   && go install ./cmd/controller-gen \
   && cd /go \
   && rm -rf /go/pkg /go/src
