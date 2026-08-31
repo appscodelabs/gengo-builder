@@ -1,4 +1,4 @@
-FROM golang:1.25
+FROM golang:1.26
 
 LABEL org.opencontainers.image.source https://github.com/appscodelabs/gengo-builder
 
@@ -24,13 +24,19 @@ ENV GOENV=off
 RUN mkdir -p /go/cache && chmod -R 0777 /go/cache
 
 # https://github.com/gardener/gardener/issues/289
+#
+# This kube-openapi commit also pins an old golang.org/x/tools that fails to
+# compile under this image's Go toolchain (same tokeninternal constant-
+# overflow issue as the code-generator step below), so bump it first.
 RUN set -x \
   && mkdir -p /go/src/k8s.io \
   && cd /go/src/k8s.io \
   && rm -rf kube-openapi \
   && git clone https://github.com/kubernetes/kube-openapi.git \
   && cd kube-openapi \
-  && git checkout 2dd684a91f00 \
+  && git checkout f3f2b991d03b \
+  && go get -u golang.org/x/tools@latest \
+  && go mod tidy \
   && go install ./cmd/openapi-gen/... \
   && cd /go \
   && rm -rf /go/pkg /go/src
@@ -86,7 +92,7 @@ RUN set -x \
 # for downstream projects to source at code-generation time.
 #
 # ac-1.30.0 pins golang.org/x/tools v0.18.0, which fails to compile under
-# this image's Go 1.25 toolchain (a constant-overflow check added to the Go
+# this image's Go toolchain (a constant-overflow check added to the Go
 # compiler after v0.18.0 was released rejects internal/tokeninternal), so
 # bump it before building.
 RUN set -x \
