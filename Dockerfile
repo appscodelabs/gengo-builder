@@ -1,4 +1,4 @@
-FROM golang:1.26
+FROM golang:1.27
 
 LABEL org.opencontainers.image.source https://github.com/appscodelabs/gengo-builder
 
@@ -48,7 +48,7 @@ RUN set -x \
   && rm -rf controller-tools \
   && git clone https://github.com/kmodules/controller-tools.git \
   && cd controller-tools \
-  && git checkout ac-0.17.2 \
+  && git checkout ac-0.19.0 \
   && go install ./cmd/controller-gen \
   && cd /go \
   && rm -rf /go/pkg /go/src
@@ -70,7 +70,7 @@ RUN mkdir -p /go/src/github.com/golang \
   && rm -rf protobuf \
   && git clone https://github.com/golang/protobuf.git \
   && cd protobuf \
-  && git checkout v1.5.3 \
+  && git checkout v1.5.4 \
   && go install ./... \
   && cd /go \
   && rm -rf /go/pkg /go/src
@@ -101,7 +101,7 @@ RUN set -x \
   && rm -rf code-generator \
   && git clone https://github.com/kmodules/code-generator.git \
   && cd code-generator \
-  && git checkout ac-1.30.0 \
+  && git checkout ac-1.34.0 \
   && go get -u golang.org/x/tools@latest \
   && go mod tidy \
   && go install ./... \
