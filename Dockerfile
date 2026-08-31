@@ -13,6 +13,16 @@ RUN set -x \
   && git config --global --add safe.directory '*' \
   && cp /root/.gitconfig /.gitconfig
 
+# code-generation is run via `docker run -u $(id -u):$(id -g) ...`, i.e. as an
+# arbitrary non-root uid with no matching /etc/passwd entry and no $HOME. That
+# breaks Go's default GOCACHE/GOENV resolution (both live under $HOME by
+# default), which now matters because kube_codegen.sh (see below) invokes
+# `go install`/`go list` at code-generation time, not just at image build
+# time. Pin them to a world-writable directory instead.
+ENV GOCACHE=/go/cache
+ENV GOENV=off
+RUN mkdir -p /go/cache && chmod -R 0777 /go/cache
+
 # https://github.com/gardener/gardener/issues/289
 RUN set -x \
   && mkdir -p /go/src/k8s.io \
@@ -65,14 +75,30 @@ RUN set -x \
   && rm -rf /go/pkg /go/src
 
 # install code-generator
+#
+# This also provides kube_codegen.sh (https://github.com/kubernetes/code-generator/blob/master/kube_codegen.sh),
+# the successor to the now-deprecated generate-groups.sh/generate-internal-groups.sh
+# scripts, at /go/src/k8s.io/code-generator/kube_codegen.sh. Unlike the other
+# tools installed above, kube_codegen.sh isn't a standalone binary: callers
+# source it and it re-installs (`go install`) whichever generator binaries a
+# given kube::codegen::gen_* function needs at the time it's invoked, so the
+# cloned repo itself (not just its compiled binaries) has to remain on disk
+# for downstream projects to source at code-generation time.
+#
+# ac-1.30.0 pins golang.org/x/tools v0.18.0, which fails to compile under
+# this image's Go 1.25 toolchain (a constant-overflow check added to the Go
+# compiler after v0.18.0 was released rejects internal/tokeninternal), so
+# bump it before building.
 RUN set -x \
   && mkdir -p /go/src/k8s.io \
   && cd /go/src/k8s.io \
   && rm -rf code-generator \
   && git clone https://github.com/kmodules/code-generator.git \
   && cd code-generator \
-  && git checkout ac-1.29.0 \
+  && git checkout ac-1.30.0 \
+  && go get -u golang.org/x/tools@latest \
+  && go mod tidy \
   && go install ./... \
   && cd /go \
   && rm -rf /go/pkg \
-  && chmod -R 0777 /go/src
+  && chmod -R 0777 /go/src /go/cache
