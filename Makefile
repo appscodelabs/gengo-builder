@@ -3,7 +3,7 @@ SHELL=/bin/bash -o pipefail
 REGISTRY   ?= appscode
 BIN        ?= gengo
 IMAGE      := $(REGISTRY)/$(BIN)
-VERSION    ?= release-1.32
+VERSION    ?= release-1.34
 SRC_REG    ?=
 
 DOCKER_PLATFORMS := linux/amd64 linux/arm64
