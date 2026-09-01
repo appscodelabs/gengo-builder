@@ -108,3 +108,12 @@ RUN set -x \
   && cd /go \
   && rm -rf /go/pkg \
   && chmod -R 0777 /go/src /go/cache
+
+# update-codegen.sh/verify-codegen.sh: a generic, parameterized pair of
+# scripts (see their own headers for the env-var interface) that drive the
+# generator binaries installed above. Bundled here so downstream
+# *.dev/apimachinery-style repos configure generation scope through their
+# Makefile instead of each carrying their own near-identical copy of these
+# scripts under hack/.
+COPY scripts/update-codegen.sh scripts/verify-codegen.sh /go/bin/
+RUN chmod +x /go/bin/update-codegen.sh /go/bin/verify-codegen.sh
