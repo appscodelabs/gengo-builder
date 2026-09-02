@@ -31,26 +31,36 @@ cleanup() {
 }
 trap "cleanup" EXIT SIGINT
 
-mkdir -p "${TMP_DIFFROOT}/apis" "${TMP_DIFFROOT}/client"
-cp -a "${SCRIPT_ROOT}/apis/." "${TMP_DIFFROOT}/apis"
-cp -a "${SCRIPT_ROOT}/client/." "${TMP_DIFFROOT}/client"
+# client/ doesn't exist for repos that only generate deepcopy/defaulter code
+# and no typed client at all (see update-codegen.sh's GENERATORS env var).
+gen_dirs=(apis)
+if [[ -d "${SCRIPT_ROOT}/client" ]]; then
+    gen_dirs+=(client)
+fi
+
+for d in "${gen_dirs[@]}"; do
+    mkdir -p "${TMP_DIFFROOT}/${d}"
+    cp -a "${SCRIPT_ROOT}/${d}/." "${TMP_DIFFROOT}/${d}"
+done
 
 update-codegen.sh
 
-echo "diffing ${SCRIPT_ROOT}/apis and ${SCRIPT_ROOT}/client against freshly generated codegen"
+echo "diffing ${gen_dirs[*]/#/${SCRIPT_ROOT}/} against freshly generated codegen"
 ret=0
-diff -Naupr "${TMP_DIFFROOT}/apis" "${SCRIPT_ROOT}/apis" || ret=$?
-diff -Naupr "${TMP_DIFFROOT}/client" "${SCRIPT_ROOT}/client" || ret=$?
+for d in "${gen_dirs[@]}"; do
+    diff -Naupr "${TMP_DIFFROOT}/${d}" "${SCRIPT_ROOT}/${d}" || ret=$?
+done
 
 # Put the tree back the way we found it, regardless of outcome, so this can
 # be run against a working tree without leaving it dirty.
-rm -rf "${SCRIPT_ROOT}/apis" "${SCRIPT_ROOT}/client"
-cp -a "${TMP_DIFFROOT}/apis" "${SCRIPT_ROOT}/apis"
-cp -a "${TMP_DIFFROOT}/client" "${SCRIPT_ROOT}/client"
+for d in "${gen_dirs[@]}"; do
+    rm -rf "${SCRIPT_ROOT:?}/${d}"
+    cp -a "${TMP_DIFFROOT}/${d}" "${SCRIPT_ROOT}/${d}"
+done
 
 if [[ $ret -eq 0 ]]; then
-    echo "${SCRIPT_ROOT}/apis and ${SCRIPT_ROOT}/client up to date."
+    echo "${gen_dirs[*]/#/${SCRIPT_ROOT}/} up to date."
 else
-    echo "${SCRIPT_ROOT}/apis or ${SCRIPT_ROOT}/client is out of date. Please run update-codegen.sh (or 'make update-codegen')."
+    echo "${gen_dirs[*]/#/${SCRIPT_ROOT}/} out of date. Please run update-codegen.sh (or 'make update-codegen')."
 fi
 exit ${ret}

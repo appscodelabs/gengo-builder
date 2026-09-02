@@ -14,10 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Regenerates a *.dev/apimachinery-style repo's deepcopy/conversion helpers
-# under ./apis and clientset/listers/informers under ./client, using the
-# generator binaries from k8s.io/code-generator's kube_codegen.sh toolchain
-# (https://github.com/kubernetes/code-generator/blob/master/kube_codegen.sh).
+# Regenerates a *.dev/apimachinery-style repo's deepcopy/defaulter/conversion
+# helpers under ./apis and clientset/listers/informers under ./client, using
+# the generator binaries from k8s.io/code-generator's kube_codegen.sh
+# toolchain (https://github.com/kubernetes/code-generator/blob/master/kube_codegen.sh).
 #
 # Bundled into this image so downstream repos don't each need their own copy
 # -- run it via `docker run ... $(CODE_GENERATOR_IMAGE) update-codegen.sh`
@@ -26,8 +26,21 @@
 #
 #   API_GROUPS (required)
 #       "group:v1,v2 group2:v3 ..." -- the same format generate-groups.sh
-#       took. Every listed group/version gets deepcopy, a typed client, a
-#       lister and an informer.
+#       took. Every listed group/version gets whichever of deepcopy, a typed
+#       client, a lister and an informer are enabled via $GENERATORS.
+#
+#   GENERATORS (optional)
+#       Comma-separated subset of "deepcopy,defaulter,client,lister,informer"
+#       -- which generators to run against $API_GROUPS. Defaults to
+#       "deepcopy,client,lister,informer" (i.e. no defaulter-gen), matching
+#       what every repo migrated onto this script before GENERATORS existed
+#       already generated.
+#
+#   DEFAULTER_GROUPS (optional)
+#       Same format as API_GROUPS, scoped to just the group/versions that
+#       need defaulter-gen run against them. Only takes effect if
+#       "defaulter" is in $GENERATORS. Left unset/empty, no defaulter code
+#       is generated even if GENERATORS includes "defaulter".
 #
 #   CONVERSION_GROUPS (optional)
 #       Same format as API_GROUPS, scoped to just the group/versions that
@@ -41,6 +54,12 @@
 #       types referenced from another module that conversion-gen wouldn't
 #       otherwise scan. Applied to every entry in CONVERSION_GROUPS.
 #
+#   EXTRA_DEEPCOPY_PKGS (optional)
+#       Space-separated list of additional full package import paths (not
+#       expressed via API_GROUPS, e.g. a shared/common apis package with no
+#       client of its own) to also run deepcopy-gen against. Only takes
+#       effect if "deepcopy" is in $GENERATORS.
+#
 #   GO_HEADER_FILE (optional)
 #       Defaults to ./hack/license/go.txt (relative to the repo root).
 #
@@ -48,11 +67,11 @@
 # wrapper functions: those auto-discover their scope by grepping the whole
 # apis/ tree for +k8s:deepcopy-gen / +k8s:defaulter-gen / +k8s:conversion-gen
 # / +genclient markers. In practice that over-matches what these repos
-# actually generate -- e.g. some carry +k8s:conversion-gen markers on
-# packages that were never wired up to real generated conversion code, and
-# +k8s:defaulter-gen markers with no repo ever having run defaulter-gen. So
-# scope is explicit (API_GROUPS/CONVERSION_GROUPS) rather than
-# auto-discovered, matching what each repo's Makefile passes through.
+# actually generate -- e.g. some carry +k8s:conversion-gen or
+# +k8s:defaulter-gen markers on packages that were never wired up to real
+# generated code. So scope is explicit (API_GROUPS/DEFAULTER_GROUPS/
+# CONVERSION_GROUPS/EXTRA_DEEPCOPY_PKGS) rather than auto-discovered,
+# matching what each repo's Makefile passes through.
 
 set -o errexit
 set -o nounset
@@ -68,19 +87,34 @@ BOILERPLATE="${GO_HEADER_FILE:-${SCRIPT_ROOT}/hack/license/go.txt}"
 THIS_PKG="$(go list -m)"
 
 API_GROUPS="${API_GROUPS:?API_GROUPS must be set, e.g. from the Makefile \$(API_GROUPS) variable}"
+GENERATORS="${GENERATORS:-deepcopy,client,lister,informer}"
+DEFAULTER_GROUPS="${DEFAULTER_GROUPS:-}"
 CONVERSION_GROUPS="${CONVERSION_GROUPS:-}"
 CONVERSION_EXTRA_PEER_DIRS="${CONVERSION_EXTRA_PEER_DIRS:-}"
+EXTRA_DEEPCOPY_PKGS="${EXTRA_DEEPCOPY_PKGS:-}"
+
+has_generator() {
+    [[ ",${GENERATORS}," == *",${1},"* ]]
+}
 
 # Expand "group:v1,v2 group2:v3 ..." into a "group/version" array, e.g.
 # "kubedb:v1alpha1,v1alpha2" -> kubedb/v1alpha1 kubedb/v1alpha2.
-group_versions=()
-for group_and_versions in ${API_GROUPS}; do
-    group="${group_and_versions%%:*}"
-    IFS=',' read -r -a versions <<<"${group_and_versions#*:}"
-    for version in "${versions[@]}"; do
-        group_versions+=("${group}/${version}")
+expand_group_versions() {
+    local groups="$1"
+    local group_and_versions group version
+    for group_and_versions in ${groups}; do
+        group="${group_and_versions%%:*}"
+        IFS=',' read -r -a versions <<<"${group_and_versions#*:}"
+        for version in "${versions[@]}"; do
+            echo "${group}/${version}"
+        done
     done
-done
+}
+
+group_versions=()
+while IFS= read -r gv; do
+    group_versions+=("${gv}")
+done < <(expand_group_versions "${API_GROUPS}")
 
 input_pkgs=()
 for gv in "${group_versions[@]}"; do
@@ -103,76 +137,105 @@ export GOBIN
     cd "${CODEGEN_PKG}"
     GO111MODULE=on go install \
         k8s.io/code-generator/cmd/deepcopy-gen \
+        k8s.io/code-generator/cmd/defaulter-gen \
         k8s.io/code-generator/cmd/conversion-gen \
         k8s.io/code-generator/cmd/client-gen \
         k8s.io/code-generator/cmd/lister-gen \
         k8s.io/code-generator/cmd/informer-gen
 )
 
-# Deepcopy helpers for every group/version in $API_GROUPS.
-echo "Generating deepcopy code for ${#input_pkgs[@]} targets"
-find "${SCRIPT_ROOT}/apis" -name zz_generated.deepcopy.go -delete
-"${GOBIN}/deepcopy-gen" \
-    --output-file zz_generated.deepcopy.go \
-    --go-header-file "${BOILERPLATE}" \
-    "${input_pkgs[@]}"
+# Deepcopy helpers for every group/version in $API_GROUPS, plus any
+# additional packages listed in $EXTRA_DEEPCOPY_PKGS.
+if has_generator deepcopy; then
+    deepcopy_pkgs=("${input_pkgs[@]}")
+    if [[ -n "${EXTRA_DEEPCOPY_PKGS}" ]]; then
+        # shellcheck disable=SC2206 # word-splitting is the point here
+        deepcopy_pkgs+=(${EXTRA_DEEPCOPY_PKGS})
+    fi
+    echo "Generating deepcopy code for ${#deepcopy_pkgs[@]} targets"
+    find "${SCRIPT_ROOT}/apis" -name zz_generated.deepcopy.go -delete
+    "${GOBIN}/deepcopy-gen" \
+        --output-file zz_generated.deepcopy.go \
+        --go-header-file "${BOILERPLATE}" \
+        "${deepcopy_pkgs[@]}"
+fi
+
+# Defaulter helpers, scoped to $DEFAULTER_GROUPS only (empty by default).
+if has_generator defaulter && [[ -n "${DEFAULTER_GROUPS}" ]]; then
+    defaulter_pkgs=()
+    while IFS= read -r gv; do
+        defaulter_pkgs+=("${THIS_PKG}/apis/${gv}")
+    done < <(expand_group_versions "${DEFAULTER_GROUPS}")
+
+    echo "Generating defaulter code for ${#defaulter_pkgs[@]} targets"
+    find "${SCRIPT_ROOT}/apis" -name zz_generated.defaults.go -delete
+    "${GOBIN}/defaulter-gen" \
+        --output-file zz_generated.defaults.go \
+        --go-header-file "${BOILERPLATE}" \
+        "${defaulter_pkgs[@]}"
+fi
 
 # Conversion helpers, scoped to $CONVERSION_GROUPS only (empty by default).
 if [[ -n "${CONVERSION_GROUPS}" ]]; then
-    conversion_group_versions=()
-    for group_and_versions in ${CONVERSION_GROUPS}; do
-        group="${group_and_versions%%:*}"
-        IFS=',' read -r -a versions <<<"${group_and_versions#*:}"
-        for version in "${versions[@]}"; do
-            conversion_group_versions+=("${group}/${version}")
-        done
-    done
-
     conversion_args=(--go-header-file "${BOILERPLATE}" --output-file zz_generated.conversion.go)
     if [[ -n "${CONVERSION_EXTRA_PEER_DIRS}" ]]; then
         conversion_args+=(--extra-peer-dirs "${CONVERSION_EXTRA_PEER_DIRS}")
     fi
 
-    for gv in "${conversion_group_versions[@]}"; do
+    while IFS= read -r gv; do
         echo "Generating conversion code for apis/${gv}"
         "${GOBIN}/conversion-gen" "${conversion_args[@]}" "${THIS_PKG}/apis/${gv}"
-    done
+    done < <(expand_group_versions "${CONVERSION_GROUPS}")
 fi
 
-# Typed clientset, listers and informers for every group/version in
-# $API_GROUPS -- including any with no +genclient resource types of their
-# own, which still get a (near-empty) typed client.
-echo "Generating client code for ${#group_versions[@]} targets"
-inputs=()
-for gv in "${group_versions[@]}"; do
-    inputs+=(--input "${gv}")
-done
-find "${SCRIPT_ROOT}/client/clientset" -name '*.go' -exec grep -l '^// Code generated by client-gen. DO NOT EDIT.$' {} + 2>/dev/null | xargs -r rm -f
-"${GOBIN}/client-gen" \
-    --go-header-file "${BOILERPLATE}" \
-    --output-dir "${SCRIPT_ROOT}/client/clientset" \
-    --output-pkg "${THIS_PKG}/client/clientset" \
-    --clientset-name versioned \
-    --input-base "${SCRIPT_ROOT}/apis" \
-    "${inputs[@]}"
+# Typed clientset for every group/version in $API_GROUPS -- including any
+# with no +genclient resource types of their own, which still get a
+# (near-empty) typed client.
+if has_generator client; then
+    echo "Generating client code for ${#group_versions[@]} targets"
+    inputs=()
+    for gv in "${group_versions[@]}"; do
+        inputs+=(--input "${gv}")
+    done
+    find "${SCRIPT_ROOT}/client/clientset" -name '*.go' -exec grep -l '^// Code generated by client-gen. DO NOT EDIT.$' {} + 2>/dev/null | xargs -r rm -f
+    "${GOBIN}/client-gen" \
+        --go-header-file "${BOILERPLATE}" \
+        --output-dir "${SCRIPT_ROOT}/client/clientset" \
+        --output-pkg "${THIS_PKG}/client/clientset" \
+        --clientset-name versioned \
+        --input-base "${SCRIPT_ROOT}/apis" \
+        "${inputs[@]}"
+fi
 
-echo "Generating lister code for ${#input_pkgs[@]} targets"
-find "${SCRIPT_ROOT}/client/listers" -name '*.go' -exec grep -l '^// Code generated by lister-gen. DO NOT EDIT.$' {} + 2>/dev/null | xargs -r rm -f
-"${GOBIN}/lister-gen" \
-    --go-header-file "${BOILERPLATE}" \
-    --output-dir "${SCRIPT_ROOT}/client/listers" \
-    --output-pkg "${THIS_PKG}/client/listers" \
-    "${input_pkgs[@]}"
+if has_generator lister; then
+    echo "Generating lister code for ${#input_pkgs[@]} targets"
+    find "${SCRIPT_ROOT}/client/listers" -name '*.go' -exec grep -l '^// Code generated by lister-gen. DO NOT EDIT.$' {} + 2>/dev/null | xargs -r rm -f
+    "${GOBIN}/lister-gen" \
+        --go-header-file "${BOILERPLATE}" \
+        --output-dir "${SCRIPT_ROOT}/client/listers" \
+        --output-pkg "${THIS_PKG}/client/listers" \
+        "${input_pkgs[@]}"
+fi
 
-echo "Generating informer code for ${#input_pkgs[@]} targets"
-find "${SCRIPT_ROOT}/client/informers" -name '*.go' -exec grep -l '^// Code generated by informer-gen. DO NOT EDIT.$' {} + 2>/dev/null | xargs -r rm -f
-"${GOBIN}/informer-gen" \
-    --go-header-file "${BOILERPLATE}" \
-    --output-dir "${SCRIPT_ROOT}/client/informers" \
-    --output-pkg "${THIS_PKG}/client/informers" \
-    --versioned-clientset-package "${THIS_PKG}/client/clientset/versioned" \
-    --listers-package "${THIS_PKG}/client/listers" \
-    "${input_pkgs[@]}"
+if has_generator informer; then
+    echo "Generating informer code for ${#input_pkgs[@]} targets"
+    find "${SCRIPT_ROOT}/client/informers" -name '*.go' -exec grep -l '^// Code generated by informer-gen. DO NOT EDIT.$' {} + 2>/dev/null | xargs -r rm -f
+    "${GOBIN}/informer-gen" \
+        --go-header-file "${BOILERPLATE}" \
+        --output-dir "${SCRIPT_ROOT}/client/informers" \
+        --output-pkg "${THIS_PKG}/client/informers" \
+        --versioned-clientset-package "${THIS_PKG}/client/clientset/versioned" \
+        --listers-package "${THIS_PKG}/client/listers" \
+        "${input_pkgs[@]}"
+fi
+
+# apis/ always exists; client/ doesn't for repos that only generate
+# deepcopy/defaulter code and no typed client at all (e.g. GENERATORS is
+# just "deepcopy,defaulter").
+gen_dirs=("${SCRIPT_ROOT}/apis")
+if [[ -d "${SCRIPT_ROOT}/client" ]]; then
+    gen_dirs+=("${SCRIPT_ROOT}/client")
+fi
 
 # The generator binaries above emit each file's imports as a single
 # unsorted block. Downstream repos' own `make fmt` (reimport3.py) regroups
@@ -205,5 +268,5 @@ while IFS= read -r -d '' f; do
         }
         { print }
     ' "${f}" >"${f}.tmp" && mv "${f}.tmp" "${f}"
-done < <(grep -rlZ -e '^// Code generated by .*-gen\. DO NOT EDIT\.$' "${SCRIPT_ROOT}/apis" "${SCRIPT_ROOT}/client")
-goimports -w "${SCRIPT_ROOT}/apis" "${SCRIPT_ROOT}/client"
+done < <(grep -rlZ -e '^// Code generated by .*-gen\. DO NOT EDIT\.$' "${gen_dirs[@]}")
+goimports -w "${gen_dirs[@]}"
